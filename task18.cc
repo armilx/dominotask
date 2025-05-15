@@ -151,9 +151,9 @@ public:
         }
         // перевірки значень у певних рядках і стовпцях 
         set<int> allowed_col1 = {1, 4};
-        set<int> allowed_col2 = {1, 2};
-        set<int> allowed_col3 = {0, 2, 3};
-        set<int> allowed_col4 = {1, 2, 3};
+        set<int> allowed_col5 = {1, 2};
+        set<int> allowed_col8 = {0, 2, 3};
+        set<int> allowed_row2 = {1, 2, 3};
 
         for (const auto& [ch, dom] : targetSolution) {
             const auto& cells = field.regions.at(ch);
