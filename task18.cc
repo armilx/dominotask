@@ -23,7 +23,7 @@ public:
     //  Конструктор, який ініціалізує доміно з двома числами
     Domino(int a = 0, int b = 0) : a(a), b(b) {}
     // Повертає впорялкований пару числе для унікальної ідентифікації 
-    pair<int, int> normaliz() const { 
+    pair<int, int> normalized() const { 
         return minmax(a, b);
     }
 };
@@ -46,7 +46,7 @@ public:
         "****************?**"
     };
 
-    const string leetters[ROWS] = { 
+    const string letters[ROWS] = { 
         "*******q***********",
         "*******q***********",
         "****yy*wwe*********",
@@ -76,9 +76,11 @@ public:
     }
 };
 
+// Клас, який розв'язує головоломку
 class DominoSolver {
 public:
-    static vector<Domino> generateDominoes(){
+    // генерує всі можливі доміно 0-0 до 6-6
+    static vector<Domino> generateAllDominoes(){
         vector<Domino> dominoes;
         for (int i = 0; i <= 6; ++i) {
             for (int j= i; j <= 6; ++j) { 
@@ -87,7 +89,7 @@ public:
         }
         return dominoes;
     }
-
+    // поле у вигляді ASCII
     static void printGridAscii(const int grid[Field::ROWS][Field::COLS], const Field& field) { 
         const int cellHeight = 3;
         const int cellWidth = 5;
@@ -122,7 +124,8 @@ public:
         cout << "    [1,4]               [1,2]          [0,2,3]\n";
     }
 
-    static bool validataTargetSolution(const map<char, Domino>& targetSolution, const Field& field) {
+    // перевіряє правильністість розміщення доміно
+    static bool validateTargetSolution(const map<char, Domino>& targetSolution, const Field& field) {
         map<pair<int, int>,int> count;
         for (const auto& [ch,dom] : targetSolution) {
             ++count[dom.normalized()];
@@ -132,19 +135,21 @@ public:
             expected.insert(d.normalized());
         }
         bool errorFound = false;
-
+        // перевірка на дублікати 
         for (const auto& [dom, c] : count) {
             if (c > 1) {
                 cout << "Помилка: доміношка {" << dom.first << ", " << dom.second << "} використовується" << c << " рази(-и)\n";
 
             }
         }
+        // перевірка на пропущені доміношки
         for (const auto& dom : expected) {
             if (count[dom] == 0) {
                 cout << "Помилка: доміношка {" << dom.first << ", " << dom.second << "} відсутня на ігровому полі\n";
                 errorFound = true;
             }
         }
+        // перевірки значень у певних рядках і стовпцях 
         set<int> allowed_col1 = {1, 4};
         set<int> allowed_col2 = {1, 2};
         set<int> allowed_col3 = {0, 2, 3};
@@ -198,4 +203,89 @@ public:
         return true;
     }
 };
+// Клас Game, курує усім процесом
+class Game {
+public:
+     // Запускає гру та обробляє вибір користувача
+    void run() {
+        Field field;
+        random_device rd;
+        mt19937 g(rd());
+    
+            // Задане правильне рішення гри
+        map<char, Domino> targetSolution = {
+            {'q', {5, 3}}, {'y', {2, 1}}, {'w', {3, 3}}, {'u', {1, 1}}, {'e', {3, 0}},
+            {'r', {0, 5}}, {'t', {5, 1}}, {'o', {1, 4}}, {'i', {1, 3}}, {'k', {1, 0}},
+            {'l', {0, 0}}, {'z', {6, 2}}, {'x', {2, 5}}, {'c', {5, 5}}, {'v', {5, 4}},
+            {'p', {2, 4}}, {'a', {4, 3}}, {'s', {3, 2}}, {'d', {2, 2}}, {'f', {2, 0}},
+            {'g', {0, 6}}, {'m', {5, 6}}, {'Q', {4, 6}}, {'h', {4, 4}}, {'b', {6, 1}},
+            {'n', {6, 3}}, {'W', {6, 6}}, {'j', {4, 0}}
+        };
+    
+        // Перевірка правильності заданого рішення
+        if (!DominoSolver::validateTargetSolution(targetSolution, field)) {
+            cout << "Знайдені помилки на ігровому полі. Завершення програми.\n";
+            return;
+        }
 
+        vector<Domino> allDominoes = DominoSolver::generateAllDominoes();
+
+        // Основний цикл гри
+        while (true) {
+            cout << "\nОберіть дію:\n";
+            cout << "1 - Скласти доміно\n";
+            cout << "0 - Вийти\n> ";
+    
+            int choice;
+            cin >> choice;
+    
+            if (!cin) {
+                cin.clear();
+                cin.ignore(1000, '\n');
+                cout << "Некоректне введення. Введіть 1 або 0.\n";
+                continue;
+            }
+    
+            if (choice == 0) break;
+            if (choice != 1) {
+                cout << "Невірна команда. Введіть 1 або 0.\n";
+                continue;
+            }
+    
+            vector<Domino> shuffled;
+            map<char, Domino> finalSolution;
+            bool found = false;
+    
+            // Пошук правильного розміщення доміношок
+            while (!found) {
+                shuffled = allDominoes;
+                shuffle(shuffled.begin(), shuffled.end(), g);
+    
+                if (DominoSolver::canPlaceSolution(shuffled, targetSolution, finalSolution)) {
+                    found = true;
+                    int grid[Field::ROWS][Field::COLS];
+                    for (int i = 0; i < Field::ROWS; ++i)
+                        for (int j = 0; j < Field::COLS; ++j)
+                            grid[i][j] = -1;
+    
+                    for (const auto& [region, dom] : finalSolution) {
+                        const auto& cells = field.regions[region];
+                        grid[cells[0].row][cells[0].col] = dom.a;
+                        grid[cells[1].row][cells[1].col] = dom.b;
+                    }
+    
+                    DominoSolver::printGridAscii(grid, field);
+                }
+            }
+        }
+    
+        cout << "Завершення програми. До побачення!\n";
+    }
+};
+    
+// точка входу
+int main() {
+    Game game;
+    game.run();
+    return 0;
+}
